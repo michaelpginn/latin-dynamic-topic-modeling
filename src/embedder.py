@@ -4,15 +4,16 @@ from cltk import NLP
 from bertopic.backend import BaseEmbedder
 
 
-def compute_document_embeddings(docs) -> dict:
+def compute_document_embeddings(docs, task_num, lock) -> dict:
     """Creates a dict of document embeddings, using the average sentence embedding.
     :returns: A dict where the key is the document text and the value is the embedding vector
     """
 
-    # Create the NLP pipeline for Latin
-    nlp = NLP(language='lat')
-    nlp.pipeline.processes.pop(-1) # Removing ``LatinLexiconProcess``, it provides definitions which we don't need right now
-    print("Created NLP pipeline.")
+    with lock:
+        # Create the NLP pipeline for Latin
+        nlp = NLP(language='lat')
+        nlp.pipeline.processes.pop(-1) # Removing ``LatinLexiconProcess``, it provides definitions which we don't need right now
+        print("Created NLP pipeline.")
 
     # Run the NLP pipeline on all docs, then get average sentence embeddings for each doc
     def average_sentence_embeddings(doc):
@@ -25,13 +26,18 @@ def compute_document_embeddings(docs) -> dict:
         return np.average(np.array(all_sentences), axis=0)
    
     # Compute embeddings for every document
-    print("Computing document embeddings...")
+    with lock:
+        print("Computing document embeddings...")
     all_doc_embeddings = dict()
-    for text in tqdm(docs):
+    for index, text in enumerate(docs):
+        with lock:
+            print(f"Task {task_num}: {index}/{len(docs)}")
+            
         doc = nlp.analyze(text[1])
         all_doc_embeddings[text[1]] = average_sentence_embeddings(doc)
 
-    np.save('doc_embeddings.npy', np.array(all_doc_embeddings.values(), dtype=object), allow_pickle=True)
+
+    # np.save('doc_embeddings.npy', np.array(all_doc_embeddings.values(), dtype=object), allow_pickle=True)
     return all_doc_embeddings
 
 
