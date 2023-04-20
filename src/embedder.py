@@ -7,16 +7,13 @@ import multiprocessing as mp
 import math
 from corpus import load_corpus
 
-os.environ["CLTK_DATA"] = "../data"
-
-def compute_document_embeddings(docs, bar_queue) -> list:
+def compute_document_embeddings(docs, bar_queue=None) -> list:
     """Creates a list of document embeddings, using the average sentence embedding.
     """
 
     # Create the NLP pipeline for Latin
     nlp = NLP(language='lat')
     nlp.pipeline.processes.pop(-1) # Removing ``LatinLexiconProcess``, it provides definitions which we don't need right now
-    # print("Created NLP pipeline.")
 
     # Run the NLP pipeline on all docs, then get average sentence embeddings for each doc
     def average_sentence_embeddings(doc):
@@ -29,18 +26,29 @@ def compute_document_embeddings(docs, bar_queue) -> list:
         return np.average(np.array(all_sentences), axis=0)
    
     # Compute embeddings for every document
-    # print("Computing document embeddings...")
     all_doc_embeddings = []
     for index, text in enumerate(docs):
-        # print(f"Task {task_num}: {index}/{len(docs)}")
-            
-        doc = nlp.analyze(text[1])
-        all_doc_embeddings.append(average_sentence_embeddings(doc))
-        bar_queue.put_nowait(1)
+        if '.' not in text[1]:
+            # This text isn't divided into sentences, we'll skip it
+            all_doc_embeddings.append(np.zeros((300,)))
+        else:
+            doc = nlp.analyze(text[1])
+            all_doc_embeddings.append(average_sentence_embeddings(doc))
+        if bar_queue is not None:
+            bar_queue.put_nowait(1)
 
-
-    # np.save('doc_embeddings.npy', np.array(all_doc_embeddings.values(), dtype=object), allow_pickle=True)
     return all_doc_embeddings
+
+
+def load_document_embeddings(documents, filename) -> dict:
+    """Loads document embeddings from a file"""
+    embeddings = np.load(filename, allow_pickle=True)
+
+    embeddings_dict = dict()
+    for i in range(len(documents)):
+        embeddings_dict[documents[i][1]] = embeddings[i]
+
+    return embeddings_dict
 
 
 class LatinEmbedder(BaseEmbedder):
@@ -67,7 +75,7 @@ def _update_bar(q, total_documents):
     
 
 def main():
-    documents = load_corpus()[:500]
+    documents = load_corpus()
     
     # Create embeddings in parallel
     bar_queue = mp.Queue()
@@ -83,7 +91,7 @@ def main():
                              args=(index_range, i, documents, all_embeddings, bar_queue))
         processes.append(process)
 
-    bar_process = mp.Process(target=_update_bar, args=(bar_queue,len(documents)), daemon=True)
+    bar_process = mp.Process(target=_update_bar, args=(bar_queue, len(documents)), daemon=True)
     bar_process.start()
     
     for p in processes:
@@ -94,6 +102,7 @@ def main():
 
     bar_process.kill()
 
+    # print(all_embeddings)
     embeddings_list = []
     for i in range(num_threads):
         embeddings_list += all_embeddings[i]
