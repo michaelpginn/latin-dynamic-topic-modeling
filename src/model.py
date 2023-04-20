@@ -1,11 +1,11 @@
 from bertopic import BERTopic
 from corpus import load_corpus
-from embedder import compute_document_embeddings, LatinEmbedder
+from embedder import load_document_embeddings, LatinEmbedder
 
 
 def create_topic_model():
     documents = load_corpus()
-    embeddings = compute_document_embeddings(documents)
+    embeddings = load_document_embeddings(documents, './doc_embeddings.npy')
     
     print("Creating topic model...")
     topic_model = BERTopic(

@@ -2,8 +2,6 @@ import os
 import glob
 from cltk.data.fetch import FetchCorpus
 
-os.environ["CLTK_DATA"] = "../data"
-
 def download_corpus():
     """Downloads the Latin Library corpus to your disk"""
     corpus_downloader = FetchCorpus(language='lat')
