@@ -5,14 +5,17 @@ from embedder import load_document_embeddings, LatinEmbedder
 
 def create_topic_model():
     documents = load_corpus()
-    embeddings = load_document_embeddings(documents, './doc_embeddings.npy')
+    embeddings = load_document_embeddings(documents, './doc_embeddings_all.npy')
     
     print("Creating topic model...")
     topic_model = BERTopic(
         embedding_model=LatinEmbedder(document_embeddings=embeddings)
     )
 
-    topics, probs = topic_model.fit_transform([doc[1] for doc in documents])
+    # Filter out any documents that didn't have a valid embedding
+    documents = [doc[1] for doc in documents if not not embeddings[doc[1]].any()]
+
+    topics, probs = topic_model.fit_transform(documents)
     return topics, probs
 
 

@@ -1,11 +1,23 @@
 import os
+from IPython.display import clear_output
 from tqdm import tqdm
 import numpy as np
 from cltk import NLP
 from bertopic.backend import BaseEmbedder
 import multiprocessing as mp
 import math
-from corpus import load_corpus
+# from corpus import load_corpus
+
+
+def average_sentence_embeddings(doc):
+    all_sentences = []
+    for sentence in doc.sentence_embeddings.values():
+        if np.any(sentence):
+            # Skip sentences that are just zeroes
+            all_sentences.append(sentence)
+
+    return np.average(np.array(all_sentences), axis=0)
+
 
 def compute_document_embeddings(docs, bar_queue=None) -> list:
     """Creates a list of document embeddings, using the average sentence embedding.
@@ -15,16 +27,6 @@ def compute_document_embeddings(docs, bar_queue=None) -> list:
     nlp = NLP(language='lat')
     nlp.pipeline.processes.pop(-1) # Removing ``LatinLexiconProcess``, it provides definitions which we don't need right now
 
-    # Run the NLP pipeline on all docs, then get average sentence embeddings for each doc
-    def average_sentence_embeddings(doc):
-        all_sentences = []
-        for sentence in doc.sentence_embeddings.values():
-            if np.any(sentence):
-                # Skip sentences that are just zeroes
-                all_sentences.append(sentence)
-
-        return np.average(np.array(all_sentences), axis=0)
-   
     # Compute embeddings for every document
     all_doc_embeddings = []
     for index, text in enumerate(docs):
@@ -55,10 +57,21 @@ class LatinEmbedder(BaseEmbedder):
     def __init__(self, document_embeddings: dict):
         super().__init__()
         self.document_embeddings = document_embeddings
+        self.nlp = NLP(language='lat')
+        self.nlp.pipeline.processes.pop(-1)
     
     def embed(self, documents, verbose=False):
-        """We've already computed our embeddings, so we don't need to do so again"""
-        return np.array([self.document_embeddings[document] for document in documents])
+        all_embeddings = []
+        for document in documents:
+            if document in self.document_embeddings:
+                """We've already computed our embeddings, so we don't need to do so again"""
+                all_embeddings.append(self.document_embeddings[document])
+            else:
+                clear_output(wait=True)
+                print(f"Embedding: {document}")
+                all_embeddings.append(average_sentence_embeddings(self.nlp.analyze(document)))
+
+        return np.array(all_embeddings)
 
 
 # Helper funcs for multithreading

@@ -5,3 +5,4 @@ data/
 .jupyter/
 cltk.log
 __pycache__/
+ldaseq

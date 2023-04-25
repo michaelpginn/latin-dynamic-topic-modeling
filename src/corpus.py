@@ -1,6 +1,9 @@
 import os
 import glob
 from cltk.data.fetch import FetchCorpus
+from cltk.lemmatize.lat import LatinBackoffLemmatizer
+from cltk.tokenizers.lat.lat import LatinWordTokenizer
+
 
 def download_corpus():
     """Downloads the Latin Library corpus to your disk"""
@@ -13,10 +16,17 @@ def load_corpus():
     print("Loading corpus...")
     all_texts = []
 
-    for filename in glob.glob('../data/lat/text/lat_text_latin_library/**/*.txt', recursive=True):
+    for filename in glob.glob('./data/lat/text/lat_text_latin_library/**/*.txt', recursive=True):
         text = open(filename, 'r').read()
         all_texts.append((filename, text))
 
     print(f"Loaded {len(all_texts)} texts.")
     return all_texts
 
+
+# def lemmatize(docs):
+#     """Lemmatizes documents so words are all the same form, helps for topics"""
+#     lemmatizer = LatinBackoffLemmatizer()
+#     tokenizer = LatinWordTokenizer()
+#     for doc in docs:
+#         lemmatizer.lemmatize(tokenizer.tokenize(documents[741][1]))
