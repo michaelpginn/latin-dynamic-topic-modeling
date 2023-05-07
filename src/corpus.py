@@ -22,11 +22,3 @@ def load_corpus():
 
     print(f"Loaded {len(all_texts)} texts.")
     return all_texts
-
-
-# def lemmatize(docs):
-#     """Lemmatizes documents so words are all the same form, helps for topics"""
-#     lemmatizer = LatinBackoffLemmatizer()
-#     tokenizer = LatinWordTokenizer()
-#     for doc in docs:
-#         lemmatizer.lemmatize(tokenizer.tokenize(documents[741][1]))
