@@ -87,6 +87,40 @@ def _update_bar(q, total_documents):
         pbar.update(x)
     
 
+from numpy import dot
+from numpy.linalg import norm
+
+nlp = NLP(language='lat')
+nlp.pipeline.processes.pop(-1)
+cos_sim = lambda a, b: dot(a, b)/(norm(a)*norm(b))
+
+def topic_coherence(top_terms):
+    embeddings = []
+    for term in top_terms:
+        word_embed = nlp.analyze(term).words[0].embedding
+        if np.any(word_embed):
+            embeddings.append(word_embed)
+    
+    total = 0
+    num = 0
+    for j in range(1,len(embeddings)):
+        for i in range(0, j):
+            num += 1
+            total += cos_sim(embeddings[j], embeddings[i])
+    
+    return total / num
+
+def mean_pairwise_jaccard(topics):
+    total = 0
+    num = 0
+    for j in range(1, len(topics)):
+        for i in range(0, j):
+            num += 1
+            intersect = len([v for v in topics[j] if v in topics[i]])
+            union = len(set(topics[j] + topics[i]))
+            total += intersect / union
+    return total / num
+
 def main():
     documents = load_corpus()
     
